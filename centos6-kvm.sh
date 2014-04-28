@@ -26,7 +26,7 @@ sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.local
 sed -i '$ i\echo 1 > /proc/sys/net/ipv6/conf/all/disable_ipv6' /etc/rc.d/rc.local
 
 # install wget and curl
-yum -y install wget curl
+yum -y install wget curl screen
 
 # setting repo
 wget http://dl.fedoraproject.org/pub/epel/6/i386/epel-release-6-8.noarch.rpm
@@ -55,7 +55,7 @@ yum -y remove cyrus-sasl;
 yum -y update
 
 # install webserver
-yum -y install nginx php-fpm php-cli
+yum -y install nginx php-fpm php-cli php-mysql php-sqlite
 service nginx restart
 service php-fpm restart
 chkconfig nginx on
@@ -72,9 +72,9 @@ chkconfig exim off
 
 # setting vnstat
 vnstat -u -i $ether
+sed -i "s/eth0/$ether/" /etc/sysconfig/vnstat
 echo "MAILTO=root" > /etc/cron.d/vnstat
 echo "*/5 * * * * root /usr/sbin/vnstat.cron" >> /etc/cron.d/vnstat
-sed -i "s/eth0/$ether/" /etc/sysconfig/vnstat
 service vnstat restart
 chkconfig vnstat on
 
@@ -88,17 +88,24 @@ echo "screenfetch" >> .bash_profile
 
 # install webserver
 cd
-wget -O /etc/nginx/nginx.conf "https://raw.github.com/ardi85/autoscript/master/nginx.conf"
+mv /etc/nginx/nginx.conf /etc/nginx/nginx.conf.old
+# wget -O /etc/nginx/nginx.conf "https://raw.github.com/ardi85/autoscript/master/nginx.conf"
+wget --no-check-certificate -O /etc/nginx/nginx.conf "https://raw.githubusercontent.com/sandaljephit/script/master/nginx.conf"
 sed -i 's/www-data/nginx/g' /etc/nginx/nginx.conf
-mkdir -p /home/vps/public_html
-echo "<pre>cuma index biasa</pre>" > /home/vps/public_html/index.html
-echo "<?php phpinfo(); ?>" > /home/vps/public_html/info.php
+useradd -m -s /bin/false vps;
+mkdir /home/vps/public_html
+#echo "<pre>cuma index biasa</pre>" > /home/vps/public_html/index.html
+#echo "<?php phpinfo(); ?>" > /home/vps/public_html/info.php
 rm /etc/nginx/conf.d/*
-wget -O /etc/nginx/conf.d/vps.conf "https://raw.github.com/ardi85/autoscript/master/vps.conf"
+#wget -O /etc/nginx/conf.d/vps.conf "https://raw.github.com/ardi85/autoscript/master/vps.conf"
+wget --no-check-certificate -O /etc/nginx/conf.d/vps.conf "https://raw.githubusercontent.com/sandaljephit/script/master/vps.conf"
 sed -i 's/apache/nginx/g' /etc/php-fpm.d/www.conf
 chmod -R +rx /home/vps
+chown -R nginx:nginx /home/vps/public_html
 service php-fpm restart
 service nginx restart
+chkconfig nginx on
+chkconfig php-fpm on
 
 # install openvpn
 cd /etc/openvpn/
@@ -196,7 +203,7 @@ chkconfig sshd on
 
 # install dropbear
 yum -y install dropbear
-echo "OPTIONS=\"-p 109 -p 110 -p 443\"" > /etc/sysconfig/dropbear
+echo "OPTIONS=\"-p 110 -p 443\"" > /etc/sysconfig/dropbear
 echo "/bin/false" >> /etc/shells
 service dropbear restart
 chkconfig dropbear on
@@ -240,8 +247,7 @@ cd
 wget -O speedtest_cli.py "https://raw.github.com/sivel/speedtest-cli/master/speedtest_cli.py"
 wget -O bench-network.sh "https://raw.github.com/ardi85/austoscript/bench-network.sh"
 wget -O ps_mem.py "https://raw.github.com/pixelb/ps_mem/master/ps_mem.py"
-#curl http://internetku.net/files/ceklogin.sh > ceklogin.sh
-wghet https://github.com/ardi85/autoscript/raw/master/ceklogin.sh
+wget https://raw.githubusercontent.com/sandaljephit/script/master/ceklogin.sh
 chmod +x speedtest_cli.py
 chmod +x ps_mem.py
 sed -i 's/auth.log/secure/g' ceklogin.sh
@@ -250,6 +256,15 @@ chmod +x ceklogin.sh
 # cron
 service crond start
 chkconfig crond on
+
+# buat swap file KVM
+dd if=/dev/zero of=/swapfile bs=1024 count=524288
+mkswap /swapfile
+chown root:root /swapfile
+chmod 0600 /swapfile
+swapon /swapfile
+sed -i '$ i\swapon /swapfile' /etc/rc.local
+sed -i '$ i\swapon /swapfile' /etc/rc.d/rc.local
 
 # finalisasi
 chown -R nginx:nginx /home/vps/public_html
@@ -267,13 +282,13 @@ chkconfig crond on
 
 # info
 clear
-echo "https://www.facebook.com/groups/BelajarMenggunakanVPS/" | tee log-install.txt
+echo "https://sandal-jephit.blogspot.com/" | tee log-install.txt
 echo "===========================================" | tee -a log-install.txt
 echo ""  | tee -a log-install.txt
 echo "Service"  | tee -a log-install.txt
 echo "-------"  | tee -a log-install.txt
 echo "OpenSSH  : 22, 80, 143"  | tee -a log-install.txt
-echo "Dropbear : 109, 110, 443"  | tee -a log-install.txt
+echo "Dropbear : 110, 443"  | tee -a log-install.txt
 echo "OpenVPN  : 1194"  | tee -a log-install.txt
 echo "badvpn   : badvpn-udpgw port 7300"  | tee -a log-install.txt
 echo "Squid    : 8080"  | tee -a log-install.txt
@@ -298,6 +313,7 @@ echo "IPv6     : [off]"  | tee -a log-install.txt
 echo ""  | tee -a log-install.txt
 echo "Log Installasi --> /root/log-install.txt"  | tee -a log-install.txt
 echo ""  | tee -a log-install.txt
+echo "Original Script By ardi85 dan jualssh.com. Terima Kasih" | tee -a log-install.txt
 echo "REBOOT VPS ANDA !"  | tee -a log-install.txt
 echo ""  | tee -a log-install.txt
 echo "==========================================="  | tee -a log-install.txt
